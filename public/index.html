@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>イラネーAI</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --night: #140f0c;
+      --paper: #ffffff;
+      --paper-2: #ffffff;
+      --ink: #000000;
+      --muted: #000000;
+      --line: #000000;
+      --accent: #c4452e;
+      --gold: #c6a15b;
+      --user: #2a211c;
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow: hidden;
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      font-size: 16px;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 50% -8%, rgba(196, 69, 46, 0.32), transparent 58%),
+        radial-gradient(640px 460px at 100% 100%, rgba(198, 161, 91, 0.16), transparent 50%),
+        var(--night);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .stage {
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      height: 100dvh;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: var(--paper);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    header {
+      position: relative;
+      flex: none;
+      text-align: center;
+      padding: calc(12px + env(safe-area-inset-top)) 16px 14px;
+      background: var(--paper);
+      box-shadow: inset 0 -1px 0 var(--line);
+    }
+
+    .about-open {
+      position: absolute;
+      top: calc(8px + env(safe-area-inset-top));
+      right: calc(8px + env(safe-area-inset-right));
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 36px;
+      min-height: 36px;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .about-open-label {
+      display: none;
+    }
+
+    h1 {
+      margin: 0;
+    }
+
+    .logo {
+      display: block;
+      max-height: 48px;
+      width: auto;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    svg.logo {
+      height: 48px;
+    }
+
+    .tag {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      letter-spacing: 0.02em;
+    }
+
+    #log {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px 14px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .empty {
+      margin: auto;
+      max-width: 16em;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    .empty p {
+      margin: 12px 0 0;
+    }
+
+    .empty-mark {
+      display: block;
+      width: 120px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .bubble {
+      max-width: min(85%, 32rem);
+      padding: 10px 13px 12px;
+      border-radius: 16px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--user);
+      color: var(--paper-2);
+      border-bottom-right-radius: 5px;
+    }
+
+    .bubble.assistant {
+      align-self: flex-start;
+      background: var(--paper-2);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-bottom-left-radius: 5px;
+      box-shadow: 3px 3px 0 rgba(36, 28, 22, 0.05);
+    }
+
+    .bubble.pending {
+      color: var(--muted);
+    }
+
+    .who {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      opacity: 0.62;
+    }
+
+    form {
+      flex: none;
+      padding: 10px 12px calc(12px + var(--safe-bottom));
+      background: var(--paper);
+      border-top: 1px solid var(--line);
+    }
+
+    #error {
+      margin: 0 4px 8px;
+      color: var(--accent);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .quota {
+      margin: 0 4px 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+
+    .composer {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    textarea {
+      flex: 1;
+      min-width: 0;
+      max-height: 128px;
+      resize: none;
+      margin: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper-2);
+      color: inherit;
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 1.5;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    textarea:focus {
+      outline: 2px solid var(--line);
+      border-color: transparent;
+    }
+
+    button.send {
+      flex: none;
+      min-height: 48px;
+      margin: 0;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      background: #00A1FE;
+      color: #000000;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      box-shadow: none;
+    }
+
+    textarea:disabled,
+    button.send:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    dialog.about[open] {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    dialog.about {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      margin: 0;
+      padding:
+        calc(16px + env(safe-area-inset-top))
+        calc(16px + env(safe-area-inset-right))
+        calc(16px + env(safe-area-inset-bottom))
+        calc(16px + env(safe-area-inset-left));
+      border: 0;
+      background: transparent;
+      box-sizing: border-box;
+    }
+
+    dialog.about::backdrop {
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    .about-panel {
+      display: flex;
+      flex-direction: column;
+      width: min(480px, 100%);
+      max-height: 100%;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    .about-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px 10px 0;
+    }
+
+    .about-x,
+    .about-close {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .about-x {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .about-body {
+      overflow-y: auto;
+      padding: 4px 20px 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .about-body h2,
+    .about-body h3 {
+      margin: 18px 0 8px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .about-body h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .about-body h3 {
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .about-body p {
+      margin: 0 0 12px;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .about-lead {
+      font-weight: 700;
+    }
+
+    .about-body a {
+      color: #0077c8;
+    }
+
+    .about-footer {
+      padding: 8px 16px 16px;
+    }
+
+    .about-close {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 999px;
+      background: #00A1FE;
+      font-size: 15px;
+    }
+
+    @media (min-width: 700px) and (min-height: 640px) {
+      .stage {
+        align-items: center;
+        padding: 28px 24px;
+      }
+
+      .app {
+        max-width: 680px;
+        height: min(860px, calc(100dvh - 56px));
+        max-height: calc(100dvh - 56px);
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow:
+          0 30px 70px rgba(0, 0, 0, 0.38),
+          0 0 0 1px #000000;
+      }
+
+      header {
+        padding-top: 20px;
+      }
+
+      .about-open {
+        top: 14px;
+        min-height: 36px;
+        padding: 0 12px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .about-open-label {
+        display: inline;
+      }
+
+      #log {
+        padding: 20px 22px 24px;
+      }
+
+      form {
+        padding: 12px 16px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <main class="app">
+      <header>
+        <button type="button" class="about-open" id="about-open" aria-label="イラネーAIについて" aria-haspopup="dialog" aria-controls="about">
+          <span class="about-open-label">イラネーAIについて</span>
+          <span aria-hidden="true">？</span>
+        </button>
+        <h1>
+          <img
+            class="logo"
+            src="./logo.png?v=2"
+            alt="イラネーAI"
+            onerror="this.hidden=true; const fb=this.nextElementSibling; fb.hidden=false; fb.removeAttribute('aria-hidden')"
+          />
+          <svg class="logo" hidden aria-hidden="true" viewBox="0 0 420 120" role="img" aria-label="イラネーAI">
+            <g transform="translate(64,60) rotate(-9)">
+              <circle r="42" fill="#ffffff" stroke="#c4452e" stroke-width="3.2"/>
+              <circle r="34" fill="none" stroke="#c4452e" stroke-width="1.15" stroke-dasharray="1.6 3.1"/>
+              <text font-family="Hiragino Mincho ProN, Yu Mincho, serif" font-size="38" fill="#c4452e" text-anchor="middle" dominant-baseline="central" font-weight="700">?</text>
+            </g>
+            <text x="118" y="74" font-family="Hiragino Mincho ProN, Yu Mincho, serif" font-size="50" fill="#241c16" font-weight="600">イラネーAI</text>
+            <path d="M120 94 H392" stroke="#c6a15b" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M120 100 H292" stroke="#c4452e" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+          </svg>
+        </h1>
+        <p class="tag">A=あやふやな　I=意見</p>
+      </header>
+
+      <section id="log" aria-live="polite"></section>
+
+      <form id="form">
+        <p id="error" hidden></p>
+        <p id="quota" class="quota"></p>
+        <div class="composer">
+          <label class="sr-only" for="input">質問</label>
+          <textarea id="input" rows="1" required></textarea>
+          <button class="send" type="submit">Send</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <dialog class="about" id="about" aria-labelledby="about-title">
+    <div class="about-panel">
+      <div class="about-toolbar">
+        <button type="button" class="about-x" id="about-x" aria-label="閉じる">×</button>
+      </div>
+      <div class="about-body">
+        <h2 id="about-title">イラネーAIについて</h2>
+        <p class="about-lead">「AI」＝「あやふやな意見」</p>
+        <p>『イラネーAI』は「イラネー屋」が開発した、対話型AIアプリです。</p>
+
+        <h3>ご利用のルール</h3>
+        <p><strong>質問できる回数：1日 20回まで</strong><br />イラネーAIはすぐにメモリがいっぱいになるので、お一人様につき1日20回までの質問制限を設けています。回数は日付が変わるとリセットされる仕組みになっています。たぶん。</p>
+        <p><strong>会話の記憶力について</strong><br />同じ画面を開いている間は、直前のやり取りをなんとなく覚えています。たまに記憶違いを起こしてさっきと違うことを言うかもしれませんが、それは仕様です。</p>
+
+        <h3>大切なご注意（免責事項）</h3>
+        <p><strong>回答の正確性は保証しません。</strong><br />仕事、勉強、医療、法律、投資、人生の重要な決断などには使用しないでください。本アプリの利用によって生じたいかなる損害についても、イラネー屋は一切の責任を負いかねます。</p>
+        <p><strong>個人情報・秘密は入力しないでください。</strong><br />お名前、住所、電話番号、パスワード、誰にも言えない秘密などは入力しないでください。入力された内容はAIの回答生成のために外部のAIシステム（OpenAI API）へ送信されます。</p>
+
+        <h3>開発・運営</h3>
+        <p>企画・開発：イラネー屋</p>
+        <p>ショップ：<a href="https://lit.link/iraneeya">https://lit.link/iraneeya</a></p>
+      </div>
+      <div class="about-footer">
+        <button type="button" class="about-close" id="about-close">閉じる</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const log = document.getElementById("log");
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const error = document.getElementById("error");
+    const button = form.querySelector("button.send");
+    const quota = document.getElementById("quota");
+    const about = document.getElementById("about");
+
+    const DAILY_LIMIT = 20;
+    const STORAGE_KEY = "iranee-ai-daily-count";
+    const LIMIT_TEXT = "本日の質問上限（20回）に達しました。頭がパンクしたので、また明日お越しください。たぶん。";
+
+    /** @type {{role: "user" | "assistant", content: string}[]} */
+    const messages = [];
+    let sending = false;
+    let memoryUsage = null;
+
+    function todayString() {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${now.getFullYear()}-${month}-${day}`;
+    }
+
+    function readUsage() {
+      const today = todayString();
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (saved && saved.date === today && Number.isInteger(saved.count) && saved.count >= 0) {
+          return { date: today, count: saved.count };
+        }
+      } catch {
+        if (memoryUsage && memoryUsage.date === today) return memoryUsage;
+      }
+      return { date: today, count: 0 };
+    }
+
+    function writeUsage(usage) {
+      memoryUsage = usage;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
+      } catch {
+        /* 保存できない環境でも、その場の回数だけは守る */
+      }
+    }
+
+    function remaining() {
+      return Math.max(0, DAILY_LIMIT - readUsage().count);
+    }
+
+    function applyQuota() {
+      const left = remaining();
+      quota.textContent = `本日の残り質問回数：あと${left}回 / ${DAILY_LIMIT}回`;
+      const blocked = left <= 0;
+      input.disabled = blocked;
+      button.disabled = blocked || sending;
+    }
+
+    function showError(message) {
+      error.hidden = !message;
+      error.textContent = message || "";
+    }
+
+    function resizeInput() {
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 128)}px`;
+    }
+
+    function render(pending) {
+      log.replaceChildren();
+
+      const blocked = remaining() <= 0;
+
+      if (messages.length === 0 && !pending && !blocked) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+
+        const mark = document.createElement("img");
+        mark.className = "empty-mark";
+        mark.src = "./logo2.png";
+        mark.alt = "";
+
+        const caption = document.createElement("p");
+        caption.textContent = "何でも聞いてください。";
+
+        empty.append(mark, caption);
+        log.append(empty);
+        return;
+      }
+
+      for (const message of messages) {
+        log.append(createBubble(message.role, message.content));
+      }
+
+      if (pending) {
+        const bubble = createBubble("assistant", "考え中…だった気がします。");
+        bubble.classList.add("pending");
+        log.append(bubble);
+      }
+
+      if (blocked && !pending) {
+        log.append(createBubble("assistant", LIMIT_TEXT));
+      }
+
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function createBubble(role, content) {
+      const bubble = document.createElement("article");
+      bubble.className = `bubble ${role}`;
+
+      const who = document.createElement("span");
+      who.className = "who";
+      who.textContent = role === "user" ? "あなた" : "イラネーAI";
+
+      const body = document.createElement("div");
+      body.textContent = content;
+
+      bubble.append(who, body);
+      return bubble;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (sending) return;
+      if (remaining() <= 0) {
+        applyQuota();
+        render(false);
+        return;
+      }
+      if (!text) return;
+
+      const usage = readUsage();
+      usage.count += 1;
+      writeUsage(usage);
+      applyQuota();
+
+      messages.push({ role: "user", content: text });
+      input.value = "";
+      resizeInput();
+      showError("");
+      sending = true;
+      button.disabled = true;
+      render(true);
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || "回答の取得に失敗しました。");
+        }
+        if (typeof data.reply !== "string" || !data.reply.trim()) {
+          throw new Error("返事が空っぽだった。知らんけど。");
+        }
+        messages.push({ role: "assistant", content: data.reply.trim() });
+      } catch (err) {
+        showError(err instanceof Error ? err.message : "なんか失敗した。知らんけど。");
+      } finally {
+        sending = false;
+        applyQuota();
+        render(false);
+        if (remaining() > 0) input.focus();
+      }
+    });
+
+    document.getElementById("about-open").addEventListener("click", () => {
+      if (!about.open) about.showModal();
+    });
+
+    function closeAbout() {
+      if (about.open) about.close();
+    }
+
+    document.getElementById("about-x").addEventListener("click", closeAbout);
+    document.getElementById("about-close").addEventListener("click", closeAbout);
+    about.addEventListener("click", (event) => {
+      if (event.target === about) closeAbout();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      applyQuota();
+      render(sending);
+    });
+
+    input.addEventListener("input", resizeInput);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    applyQuota();
+    render(false);
+  </script>
+</body>
+</html>
