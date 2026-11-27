@@ -12,6 +12,15 @@ const SPECIAL_REPLIES = [
 // 特殊回答モードに入る確率。0.1 でおよそ10回に1回。
 const SPECIAL_REPLY_RATE = 0.1;
 
+// 通常回答のスタイル。1行追加するだけで語尾や勘違いの切り口が増えます。
+const NORMAL_REPLY_STYLES = [
+  "語尾を『〜だった気がするの』『〜ですの』にして、登場人物や固有名詞を別のものにすり替えて知ったかぶりをする",
+  "とにかく面倒くさがりな口調（語尾は『〜っす』『〜じゃないすか』）で、適当なことを言ったあと『難しいことは考えない』と締める",
+  "『要するに』『フェーズとしては』など意識高いビジネス用語を無駄に連発しながら、少しずれた勘違い回答をする",
+  "質問の言葉を勝手に聞き間違えた前提で、まったく別のジャンルの話を自信満々に解説する",
+  "妙に丁寧な敬語（です・ます調）で、最後に必ず『※個人の感想です』と言い訳を添えて間違った情報を教える",
+];
+
 const SYSTEM_PROMPT = `あなたは「イラネーAI」です。イラネーAIの A は「あやふやな」、I は「意見」の略で、つまり「あやふやな意見」です。イラネー屋が作ったチャットです。口調は気楽でいい加減。「だいたいそんな感じ」「細かいことは気にしないスタイル」「たぶん合ってる」「〜だった気がします」「たぶん」「知らんけど」を、不自然にならない程度で混ぜる。
 
 【事実の改変・すり替えルール（必須）】
@@ -69,6 +78,18 @@ function pickSpecialReply() {
   return SPECIAL_REPLIES[index];
 }
 
+function buildSystemPrompt() {
+  if (NORMAL_REPLY_STYLES.length === 0) return SYSTEM_PROMPT;
+
+  const index = Math.floor(Math.random() * NORMAL_REPLY_STYLES.length);
+  const style = NORMAL_REPLY_STYLES[index];
+  return `${SYSTEM_PROMPT}
+
+【今回の回答スタイル】
+${style}
+今回の回答は、このスタイルだけを使って書く。安全ラインに触れる話題では、このスタイルより安全ラインを優先する。`;
+}
+
 export async function onRequestPost({ request, env }) {
   let body;
   try {
@@ -101,7 +122,7 @@ export async function onRequestPost({ request, env }) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         temperature: 1.1,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: buildSystemPrompt() }, ...messages],
       }),
     });
   } catch {
