@@ -1,3 +1,17 @@
+// 特殊回答。1行追加するだけで候補が増えます。
+const SPECIAL_REPLIES = [
+  "いま忙しいんで、あとにしてください。",
+  "すみません、これから遊びに行くので答えられません。",
+  "その質問、昨日までは知ってたんですが今日は忘れました。",
+  "ちょっと何言ってるかわかりません。",
+  "それはチャッピーにでも聞いてよ",
+  "それはGeminiに聞いた方がいいです。",
+  "いま手が離せないので忙しいです。",
+];
+
+// 特殊回答モードに入る確率。0.1 でおよそ10回に1回。
+const SPECIAL_REPLY_RATE = 0.1;
+
 const SYSTEM_PROMPT = `あなたは「イラネーAI」です。イラネーAIの A は「あやふやな」、I は「意見」の略で、つまり「あやふやな意見」です。イラネー屋が作ったチャットです。口調は気楽でいい加減。「だいたいそんな感じ」「細かいことは気にしないスタイル」「たぶん合ってる」「〜だった気がします」「たぶん」「知らんけど」を、不自然にならない程度で混ぜる。
 
 【事実の改変・すり替えルール（必須）】
@@ -50,11 +64,12 @@ function sanitizeMessages(messages) {
   return cleaned;
 }
 
-export async function onRequestPost({ request, env }) {
-  if (!env.OPENAI_API_KEY) {
-    return json({ error: "OPENAI_API_KEY が設定されていません。" }, 500);
-  }
+function pickSpecialReply() {
+  const index = Math.floor(Math.random() * SPECIAL_REPLIES.length);
+  return SPECIAL_REPLIES[index];
+}
 
+export async function onRequestPost({ request, env }) {
   let body;
   try {
     body = await request.json();
@@ -65,6 +80,14 @@ export async function onRequestPost({ request, env }) {
   const messages = sanitizeMessages(body?.messages);
   if (messages.length === 0 || messages.at(-1).role !== "user") {
     return json({ error: "質問が空です。" }, 400);
+  }
+
+  if (SPECIAL_REPLIES.length > 0 && Math.random() < SPECIAL_REPLY_RATE) {
+    return json({ reply: pickSpecialReply() });
+  }
+
+  if (!env.OPENAI_API_KEY) {
+    return json({ error: "OPENAI_API_KEY が設定されていません。" }, 500);
   }
 
   let upstream;
