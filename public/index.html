@@ -173,7 +173,7 @@
       align-self: flex-start;
       background: var(--paper-2);
       border: 1px solid var(--line);
-      border-left: 3px solid var(--accent);
+      border-left: 3px solid #00A1FE;
       border-bottom-left-radius: 5px;
       box-shadow: 3px 3px 0 rgba(36, 28, 22, 0.05);
     }
@@ -253,17 +253,18 @@
 
     button.send {
       flex: none;
-      min-height: 48px;
+      width: 48px;
+      height: 48px;
       margin: 0;
-      padding: 0 16px;
+      padding: 0;
       border: 0;
-      border-radius: 999px;
+      border-radius: 50%;
       background: #00A1FE;
       color: #000000;
       font-family: inherit;
-      font-size: 15px;
+      font-size: 22px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      line-height: 1;
       cursor: pointer;
       box-shadow: none;
     }
@@ -466,7 +467,7 @@
         <div class="composer">
           <label class="sr-only" for="input">質問</label>
           <textarea id="input" rows="1" required></textarea>
-          <button class="send" type="submit">Send</button>
+          <button class="send" type="submit" aria-label="送信">↑</button>
         </div>
       </form>
     </main>
